@@ -46,6 +46,7 @@ export function AnimatedNumber({ value, className }: AnimatedNumberProps) {
 
   useEffect(() => {
     if (!started || !parsed) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplay(value);
       return;
     }
