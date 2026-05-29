@@ -5,14 +5,20 @@ import type { UserRole } from "@/types/database";
 export async function ensureUserProfile(
   supabase: SupabaseClient,
   authUser: AuthUser,
-): Promise<void> {
-  const { data: existing } = await supabase
+): Promise<{ ok: boolean; error?: string }> {
+  const { data: existing, error: selectError } = await supabase
     .from("users")
     .select("id")
     .eq("id", authUser.id)
     .maybeSingle();
 
-  if (existing) return;
+  if (selectError) {
+    // Table doesn't exist or RLS is blocking — surface clearly instead of silently failing.
+    console.error("[ensureUserProfile] users select:", selectError.message);
+    return { ok: false, error: selectError.message };
+  }
+
+  if (existing) return { ok: true };
 
   const meta = authUser.user_metadata ?? {};
   const role = (meta.role as UserRole | undefined) ?? "job_seeker";
@@ -28,20 +34,31 @@ export async function ensureUserProfile(
     role,
   });
 
-  if (userError && !userError.message.includes("duplicate")) {
-    console.error("[ensureUserProfile] users insert:", userError.message);
-    return;
+  if (userError) {
+    if (!userError.message.includes("duplicate")) {
+      console.error("[ensureUserProfile] users insert:", userError.message);
+      return { ok: false, error: userError.message };
+    }
+    // Duplicate = another request already created it — that's fine.
   }
 
   if (role === "recruiter") {
-    await supabase.from("recruiters").insert({
+    const { error: rErr } = await supabase.from("recruiters").insert({
       user_id: authUser.id,
       company_name: (meta.company_name as string | undefined) ?? "My Company",
     });
+    if (rErr && !rErr.message.includes("duplicate")) {
+      console.error("[ensureUserProfile] recruiters insert:", rErr.message);
+    }
   } else if (role === "job_seeker") {
-    await supabase.from("job_seekers").insert({
+    const { error: sErr } = await supabase.from("job_seekers").insert({
       user_id: authUser.id,
       headline: (meta.headline as string | undefined) ?? "Open to opportunities",
     });
+    if (sErr && !sErr.message.includes("duplicate")) {
+      console.error("[ensureUserProfile] job_seekers insert:", sErr.message);
+    }
   }
+
+  return { ok: true };
 }

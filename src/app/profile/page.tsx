@@ -1,19 +1,29 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { ProfileCompletion } from "@/components/profile/profile-completion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentUser, getDashboardPath } from "@/lib/auth";
+import { getAuthUser, getCurrentUser, getDashboardPath } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/env";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { redirect } from "next/navigation";
+import type { UserRole } from "@/types/database";
 
 export default async function ProfilePage() {
+  const authUser = await getAuthUser();
   const user = await getCurrentUser();
 
-  if (!user && isSupabaseConfigured()) {
+  if (!authUser && isSupabaseConfigured()) {
     redirect("/login");
   }
+
+  const profilePending = Boolean(authUser && !user);
+
+  // Derive the best-guess dashboard path even when the DB profile is missing,
+  // using the role stored in auth metadata at sign-up time.
+  const pendingRole =
+    (authUser?.user_metadata?.role as UserRole | undefined) ?? "job_seeker";
+  const pendingDashboardPath = getDashboardPath(pendingRole);
 
   return (
     <Container className="py-10">
@@ -23,7 +33,19 @@ export default async function ProfilePage() {
             <CardTitle>Profile</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {user ? (
+            {profilePending ? (
+              <>
+                <p className="text-muted-foreground">
+                  Your account is signed in but your profile could not be loaded.
+                  The database schema may not be applied yet — check the README for
+                  setup instructions, then refresh this page.
+                </p>
+                <Button asChild>
+                  <Link href={pendingDashboardPath}>Go to dashboard</Link>
+                </Button>
+                <SignOutButton />
+              </>
+            ) : user ? (
               <>
                 <p>
                   <span className="font-medium">Name:</span> {user.full_name || "—"}
