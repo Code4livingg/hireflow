@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,17 +15,15 @@ export function PostJobForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setMessage(null);
 
     try {
       if (!isSupabaseConfigured()) {
-        setMessage("Demo mode: job posting requires Supabase connection.");
+        toast.success("Demo: job posting simulated.");
         return;
       }
 
@@ -54,17 +53,17 @@ export function PostJobForm() {
       setTitle("");
       setDescription("");
       setLocation("");
-      setMessage("Job posted successfully.");
+      toast.success("Job posted successfully!");
       router.refresh();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not post job.");
+      toast.error(err instanceof Error ? err.message : "Could not post job.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <Card>
+    <Card className="interactive-card card-glow">
       <CardHeader>
         <CardTitle>Post a job</CardTitle>
         <CardDescription>Create a new open role on the marketplace.</CardDescription>
@@ -89,7 +88,6 @@ export function PostJobForm() {
             <Label htmlFor="location">Location</Label>
             <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
           </div>
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
           <Button type="submit" disabled={loading}>
             {loading ? "Posting..." : "Publish job"}
           </Button>

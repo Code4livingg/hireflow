@@ -21,8 +21,14 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000)
 
 1. Create a Supabase project
 2. Copy `.env.example` to `.env.local` and add your keys
-3. Run `supabase/schema.sql` in the SQL Editor
-4. Optionally run `supabase/seed.sql` after creating a recruiter account
+3. **Important:** `NEXT_PUBLIC_SUPABASE_URL` must be the project root only:
+   - Correct: `https://YOUR_REF.supabase.co`
+   - Wrong: `https://YOUR_REF.supabase.co/rest/v1` (causes auth errors)
+4. In Supabase → Authentication → URL Configuration, add:
+   - `http://127.0.0.1:3000/auth/callback`
+   - `http://localhost:3000/auth/callback`
+5. Run `supabase/schema.sql` in the SQL Editor
+6. Optionally run `supabase/seed.sql` after creating a recruiter account
 
 ## Routes
 

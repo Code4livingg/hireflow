@@ -15,7 +15,7 @@ export function FeaturesSection() {
         />
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {platformFeatures.map((feature) => (
-            <Card key={feature.title} className="h-full">
+            <Card key={feature.title} className="interactive-card h-full">
               <CardHeader>
                 <div className="mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <FeatureIcon name={feature.icon} className="size-5" />

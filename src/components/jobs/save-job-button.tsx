@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
@@ -11,15 +12,13 @@ type SaveJobButtonProps = {
 
 export function SaveJobButton({ jobId }: SaveJobButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   async function handleSave() {
     setLoading(true);
-    setMessage(null);
 
     try {
       if (!isSupabaseConfigured()) {
-        setMessage("Demo mode: saved locally for presentation.");
+        toast.success("Demo: job saved locally.");
         return;
       }
 
@@ -28,7 +27,7 @@ export function SaveJobButton({ jobId }: SaveJobButtonProps) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        setMessage("Sign in to save jobs.");
+        toast.error("Sign in to save jobs.");
         return;
       }
 
@@ -39,7 +38,7 @@ export function SaveJobButton({ jobId }: SaveJobButtonProps) {
         .single();
 
       if (!seeker) {
-        setMessage("Only job seeker accounts can save jobs.");
+        toast.error("Only job seeker accounts can save jobs.");
         return;
       }
 
@@ -49,20 +48,17 @@ export function SaveJobButton({ jobId }: SaveJobButtonProps) {
       });
 
       if (error) throw error;
-      setMessage("Job saved.");
+      toast.success("Job saved to your list.");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not save job.");
+      toast.error(err instanceof Error ? err.message : "Could not save job.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="space-y-2">
-      <Button variant="outline" onClick={handleSave} disabled={loading}>
-        {loading ? "Saving..." : "Save job"}
-      </Button>
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-    </div>
+    <Button variant="outline" onClick={handleSave} disabled={loading}>
+      {loading ? "Saving..." : "Save job"}
+    </Button>
   );
 }

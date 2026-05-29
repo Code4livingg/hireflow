@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isSupabaseConfigured } from "@/lib/env";
-import { createClient } from "@/lib/supabase/client";
+import { signInAction, signUpAction, type AuthActionState } from "@/lib/auth-actions";
 import type { UserRole } from "@/types/database";
 
 type AuthMode = "login" | "register";
@@ -18,57 +18,27 @@ type AuthFormProps = {
   defaultRole?: UserRole;
 };
 
+const initialState: AuthActionState = {};
+
 export function AuthForm({ mode, defaultRole = "job_seeker" }: AuthFormProps) {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<UserRole>(defaultRole);
-  const [companyName, setCompanyName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const action = mode === "login" ? signInAction : signUpAction;
+  const [state, formAction, pending] = useActionState(action, initialState);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      if (!isSupabaseConfigured()) {
-        setError("Supabase is not configured. Add env keys to enable authentication.");
-        return;
-      }
-
-      const supabase = createClient();
-
-      if (mode === "login") {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) throw signInError;
-        router.push("/profile");
-        router.refresh();
-        return;
-      }
-
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role,
-            company_name: role === "recruiter" ? companyName : undefined,
-          },
-        },
-      });
-      if (signUpError) throw signUpError;
-      router.push("/login?registered=1");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Authentication failed.");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      toast.error(decodeURIComponent(error));
     }
-  }
+    if (searchParams.get("registered") === "1") {
+      toast.success("Account created. You can sign in now.");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (state.error) toast.error(state.error);
+    if (state.success) toast.success(state.success);
+  }, [state.error, state.success]);
 
   return (
     <Card className="mx-auto w-full max-w-md">
@@ -81,70 +51,50 @@ export function AuthForm({ mode, defaultRole = "job_seeker" }: AuthFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={formAction} className="space-y-4">
           {mode === "register" ? (
             <>
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full name</Label>
-                <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
+                <Input id="fullName" name="fullName" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Account type</Label>
                 <select
                   id="role"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as UserRole)}
+                  name="role"
+                  defaultValue={defaultRole}
                   className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
                 >
                   <option value="job_seeker">Job seeker</option>
                   <option value="recruiter">Recruiter</option>
                 </select>
               </div>
-              {role === "recruiter" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Company name</Label>
-                  <Input
-                    id="companyName"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    required
-                  />
-                </div>
-              ) : null}
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company name (recruiters only)</Label>
+                <Input id="companyName" name="companyName" placeholder="Optional for job seekers" />
+              </div>
             </>
           ) : null}
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <Input id="email" name="email" type="email" autoComplete="email" required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
               minLength={6}
               required
             />
           </div>
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
+          <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
           </Button>
         </form>
 

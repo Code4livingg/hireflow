@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
@@ -13,15 +14,13 @@ type ApplyButtonProps = {
 export function ApplyButton({ jobId }: ApplyButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   async function handleApply() {
     setLoading(true);
-    setMessage(null);
 
     try {
       if (!isSupabaseConfigured()) {
-        setMessage("Demo mode: connect Supabase to submit real applications.");
+        toast.success("Demo: application recorded locally.");
         return;
       }
 
@@ -31,6 +30,7 @@ export function ApplyButton({ jobId }: ApplyButtonProps) {
       } = await supabase.auth.getUser();
 
       if (!user) {
+        toast.error("Sign in to apply for jobs.");
         router.push("/login");
         return;
       }
@@ -42,7 +42,7 @@ export function ApplyButton({ jobId }: ApplyButtonProps) {
         .single();
 
       if (!seeker) {
-        setMessage("Only job seeker accounts can apply.");
+        toast.error("Only job seeker accounts can apply.");
         return;
       }
 
@@ -53,21 +53,18 @@ export function ApplyButton({ jobId }: ApplyButtonProps) {
       });
 
       if (error) throw error;
-      setMessage("Application submitted successfully.");
+      toast.success("Application submitted successfully!");
       router.refresh();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not apply.");
+      toast.error(err instanceof Error ? err.message : "Could not apply.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="space-y-2">
-      <Button onClick={handleApply} disabled={loading}>
-        {loading ? "Submitting..." : "Apply now"}
-      </Button>
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-    </div>
+    <Button onClick={handleApply} disabled={loading}>
+      {loading ? "Submitting..." : "Apply now"}
+    </Button>
   );
 }
