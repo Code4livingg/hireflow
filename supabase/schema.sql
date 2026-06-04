@@ -169,7 +169,11 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interviews ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can read own profile" ON users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Job seekers insert own row" ON job_seekers FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "Recruiters insert own row" ON recruiters FOR INSERT WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Anyone can read open jobs" ON jobs FOR SELECT USING (status = 'open' OR auth.uid() IS NOT NULL);
 CREATE POLICY "Recruiters manage own jobs" ON jobs FOR ALL USING (

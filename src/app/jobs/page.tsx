@@ -1,16 +1,15 @@
-import { JobCard } from "@/components/jobs/job-card";
+import { JobsDiscovery } from "@/components/jobs/jobs-discovery";
 import { Container } from "@/components/layout/container";
-import { EmptyState } from "@/components/ui/empty-state";
 import { getJobs } from "@/lib/jobs";
 import { isSupabaseConfigured } from "@/lib/env";
-import { Briefcase } from "lucide-react";
+import { getCurrentProfileSkills } from "@/lib/resume-match-server";
 
 export const metadata = {
   title: "Jobs",
 };
 
 export default async function JobsPage() {
-  const jobs = await getJobs();
+  const [jobs, userSkills] = await Promise.all([getJobs(), getCurrentProfileSkills()]);
 
   return (
     <Container className="py-10">
@@ -21,19 +20,7 @@ export default async function JobsPage() {
           {!isSupabaseConfigured() ? "Showing demo data until Supabase is connected." : ""}
         </p>
       </div>
-      {jobs.length === 0 ? (
-        <EmptyState
-          icon={Briefcase}
-          title="No open jobs"
-          description="Check back soon — recruiters are posting new roles."
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {jobs.map((job, index) => (
-            <JobCard key={job.id} job={job} featured={index === 0} />
-          ))}
-        </div>
-      )}
+      <JobsDiscovery jobs={jobs} userSkills={userSkills} />
     </Container>
   );
 }

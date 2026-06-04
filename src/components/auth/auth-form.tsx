@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -24,13 +24,23 @@ export function AuthForm({ mode, defaultRole = "job_seeker" }: AuthFormProps) {
   const searchParams = useSearchParams();
   const action = mode === "login" ? signInAction : signUpAction;
   const [state, formAction, pending] = useActionState(action, initialState);
+  const handledQueryRef = useRef<string | null>(null);
 
   useEffect(() => {
     const error = searchParams.get("error");
+    const registered = searchParams.get("registered");
+    const queryKey = `${error ?? ""}|${registered ?? ""}`;
+
+    if (queryKey === "|" || handledQueryRef.current === queryKey) {
+      return;
+    }
+
+    handledQueryRef.current = queryKey;
+
     if (error) {
       toast.error(decodeURIComponent(error));
     }
-    if (searchParams.get("registered") === "1") {
+    if (registered === "1") {
       toast.success("Account created. You can sign in now.");
     }
   }, [searchParams]);

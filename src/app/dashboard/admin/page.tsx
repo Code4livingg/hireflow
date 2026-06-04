@@ -1,8 +1,9 @@
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { AdminAnalytics } from "@/components/dashboard/admin-analytics";
+import { AdminTables } from "@/components/dashboard/admin-tables";
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAdminDashboardData } from "@/lib/admin-dashboard";
 import { requireRole } from "@/lib/auth";
-import { getJobs } from "@/lib/jobs";
 import { isSupabaseConfigured } from "@/lib/env";
 
 export default async function AdminDashboardPage() {
@@ -10,34 +11,39 @@ export default async function AdminDashboardPage() {
     await requireRole(["admin"]);
   }
 
-  const jobs = await getJobs();
+  const data = await getAdminDashboardData();
 
   return (
-    <DashboardShell
+    <DashboardLayout
+      role="admin"
       title="Admin dashboard"
       description="Platform health, moderation, and hiring operations overview."
-      links={[
-        { href: "/jobs", label: "Jobs" },
-        { href: "/dashboard/recruiter", label: "Recruiter view" },
-        { href: "/dashboard/student", label: "Student view" },
-      ]}
     >
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total jobs" value={String(jobs.length)} detail="All listings" />
-        <StatCard label="Users" value="—" detail="Registered accounts" />
-        <StatCard label="Applications" value="—" detail="Platform-wide" />
-        <StatCard label="Notifications" value="—" detail="Unread alerts" />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard
+          label="Total users"
+          value={String(data.stats.totalUsers)}
+          detail="Registered accounts"
+          highlight
+          tooltip="All platform users with profiles"
+        />
+        <StatCard label="Total jobs" value={String(data.stats.totalJobs)} detail="All listings" />
+        <StatCard
+          label="Applications"
+          value={String(data.stats.totalApplications)}
+          detail="Submitted applications"
+        />
+        <StatCard label="Recruiters" value={String(data.stats.recruiters)} detail="Hiring teams" />
+        <StatCard label="Active jobs" value={String(data.stats.activeJobs)} detail="Open listings" />
       </div>
 
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Moderation queue</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Admin tools for recruiter verification and fake job moderation can be extended here.
-          Database tables and RLS policies are already prepared in <code>supabase/schema.sql</code>.
-        </CardContent>
-      </Card>
-    </DashboardShell>
+      <div className="mt-8">
+        <AdminAnalytics charts={data.charts} />
+      </div>
+
+      <div className="mt-8">
+        <AdminTables tables={data.tables} />
+      </div>
+    </DashboardLayout>
   );
 }

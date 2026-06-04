@@ -1,9 +1,14 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { getSupabaseAnonKey, getSupabaseUrl, isSupabaseConfigured } from "@/lib/env";
+import { requireSupabaseConfig } from "@/lib/supabase/config";
+
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
 
 export function createClient() {
-  if (!isSupabaseConfigured()) {
-    throw new Error("Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  const { url, anonKey } = requireSupabaseConfig();
+
+  if (!browserClient) {
+    browserClient = createBrowserClient(url, anonKey);
   }
-  return createBrowserClient(getSupabaseUrl(), getSupabaseAnonKey());
+
+  return browserClient;
 }

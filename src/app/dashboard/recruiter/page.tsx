@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { CandidateRanking } from "@/components/dashboard/candidate-ranking";
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { ApplicationsTimeline } from "@/components/dashboard/applications-timeline";
 import { RecruiterCharts } from "@/components/dashboard/recruiter-charts";
@@ -10,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/lib/auth";
 import { getJobs } from "@/lib/jobs";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getRankedCandidates } from "@/lib/resume-match-server";
 import { Briefcase } from "lucide-react";
 
 export default async function RecruiterDashboardPage() {
@@ -17,16 +19,13 @@ export default async function RecruiterDashboardPage() {
     await requireRole(["recruiter", "admin"]);
   }
 
-  const jobs = await getJobs();
+  const [jobs, rankedCandidates] = await Promise.all([getJobs(), getRankedCandidates()]);
 
   return (
-    <DashboardShell
+    <DashboardLayout
+      role="recruiter"
       title="Recruiter dashboard"
       description="Post jobs, review applicants, and monitor hiring pipeline."
-      links={[
-        { href: "/jobs", label: "Public job board" },
-        { href: "/profile", label: "Profile" },
-      ]}
     >
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
@@ -47,6 +46,10 @@ export default async function RecruiterDashboardPage() {
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <ActivityFeed />
         <ApplicationsTimeline />
+      </div>
+
+      <div className="mt-8">
+        <CandidateRanking candidates={rankedCandidates} />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -80,6 +83,6 @@ export default async function RecruiterDashboardPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardShell>
+    </DashboardLayout>
   );
 }

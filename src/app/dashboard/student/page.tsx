@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Briefcase } from "lucide-react";
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { ApplicationsTimeline } from "@/components/dashboard/applications-timeline";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ApplicationStatusBadge } from "@/components/ui/application-status-badge";
@@ -29,13 +29,10 @@ export default async function StudentDashboardPage() {
   }));
 
   return (
-    <DashboardShell
+    <DashboardLayout
+      role="student"
       title="Student dashboard"
       description="Track applications, saved jobs, and interview progress."
-      links={[
-        { href: "/jobs", label: "Browse jobs" },
-        { href: "/profile", label: "Profile" },
-      ]}
     >
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
@@ -96,6 +93,6 @@ export default async function StudentDashboardPage() {
           ))}
         </CardContent>
       </Card>
-    </DashboardShell>
+    </DashboardLayout>
   );
 }

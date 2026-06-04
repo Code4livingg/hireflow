@@ -1,19 +1,21 @@
 import type { Application, Job } from "@/types/database";
 
+const now = Date.now();
+
 export const demoJobs: Job[] = [
   {
     id: "demo-1",
     recruiter_id: "demo-recruiter",
     title: "Senior Full Stack Engineer",
     description:
-      "Build scalable hiring workflows with Next.js, PostgreSQL, and Supabase. Work on authentication, dashboards, and relational data models.",
+      "Build scalable hiring workflows with Next.js, React, TypeScript, PostgreSQL, and Supabase. Work on authentication, dashboards, and relational data models.",
     location: "Bengaluru, India",
     employment_type: "full-time",
     salary_min: 1800000,
     salary_max: 2800000,
     status: "open",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
     company_name: "Northstar Labs",
   },
   {
@@ -21,14 +23,14 @@ export const demoJobs: Job[] = [
     recruiter_id: "demo-recruiter",
     title: "Product Designer",
     description:
-      "Design recruiter and candidate experiences for a modern job portal with accessible, responsive UI patterns.",
+      "Design recruiter and candidate experiences for a modern job portal with accessible, responsive UI patterns and product discovery flows.",
     location: "Remote",
     employment_type: "full-time",
     salary_min: 1200000,
     salary_max: 2000000,
     status: "open",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
     company_name: "Cobalt Systems",
   },
   {
@@ -36,14 +38,14 @@ export const demoJobs: Job[] = [
     recruiter_id: "demo-recruiter",
     title: "Data Analyst Intern",
     description:
-      "Analyze application funnel metrics, build reports, and support DBMS coursework demonstrations.",
+      "Analyze application funnel metrics with SQL and analytics reports, then support DBMS coursework demonstrations.",
     location: "Hyderabad, India",
     employment_type: "internship",
     salary_min: 300000,
     salary_max: 500000,
     status: "open",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: new Date(now - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(now - 8 * 24 * 60 * 60 * 1000).toISOString(),
     company_name: "SignalWorks",
   },
 ];
