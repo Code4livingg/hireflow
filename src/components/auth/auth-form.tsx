@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInAction, signUpAction, type AuthActionState } from "@/lib/auth-actions";
+import { isSupabaseConfigured } from "@/lib/env";
 import type { UserRole } from "@/types/database";
 
 type AuthMode = "login" | "register";
@@ -25,6 +26,7 @@ export function AuthForm({ mode, defaultRole = "job_seeker" }: AuthFormProps) {
   const action = mode === "login" ? signInAction : signUpAction;
   const [state, formAction, pending] = useActionState(action, initialState);
   const handledQueryRef = useRef<string | null>(null);
+  const demoMode = !isSupabaseConfigured();
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -46,7 +48,11 @@ export function AuthForm({ mode, defaultRole = "job_seeker" }: AuthFormProps) {
   }, [searchParams]);
 
   useEffect(() => {
-    if (state.error) toast.error(state.error);
+    if (state.error) {
+      if (!state.error.toLowerCase().includes("supabase")) {
+        toast.error(state.error);
+      }
+    }
     if (state.success) toast.success(state.success);
   }, [state.error, state.success]);
 
@@ -107,6 +113,19 @@ export function AuthForm({ mode, defaultRole = "job_seeker" }: AuthFormProps) {
             {pending ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
           </Button>
         </form>
+
+        {demoMode && (
+          <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <p className="mb-1 font-medium text-foreground">🎭 Demo Mode — no account needed</p>
+            <p>Use any of these to explore:</p>
+            <div className="mt-1.5 space-y-0.5 font-mono">
+              <p>student@demo.com · any password</p>
+              <p>recruiter@demo.com · any password</p>
+              <p>admin@demo.com · any password</p>
+            </div>
+            <p className="mt-1.5">Or just type any email + 6-char password.</p>
+          </div>
+        )}
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
           {mode === "login" ? (

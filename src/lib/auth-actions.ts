@@ -3,14 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getDashboardPath } from "@/lib/auth";
-import { ensureUserProfile } from "@/lib/supabase/ensure-profile";
-import {
-  formatAuthError,
-  getSiteUrl,
-  isSupabaseConfigured,
-  requireSupabaseConfig,
-  SupabaseConfigError,
-} from "@/lib/supabase/config";
+import { getSiteUrl, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/types/database";
 
@@ -19,22 +12,10 @@ export type AuthActionState = {
   success?: string;
 };
 
-function configErrorMessage(err: unknown): string {
-  if (err instanceof SupabaseConfigError) return err.message;
-  return "Supabase is not configured correctly.";
-}
-
 export async function signInAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
-  if (!isSupabaseConfigured()) {
-    return {
-      error:
-        "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL (root only, no /rest/v1) and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.",
-    };
-  }
-
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
@@ -42,10 +23,24 @@ export async function signInAction(
     return { error: "Email and password are required." };
   }
 
-  try {
-    requireSupabaseConfig();
-  } catch (err) {
-    return { error: configErrorMessage(err) };
+  if (!isSupabaseConfigured()) {
+    const demoAccounts: Record<string, { role: string; path: string }> = {
+      "seeker@demo.com": { role: "job_seeker", path: "/dashboard/student" },
+      "student@demo.com": { role: "job_seeker", path: "/dashboard/student" },
+      "recruiter@demo.com": { role: "recruiter", path: "/dashboard/recruiter" },
+      "admin@demo.com": { role: "admin", path: "/dashboard/admin" },
+    };
+
+    const demo = demoAccounts[email.toLowerCase()];
+    if (demo && password.length >= 6) {
+      redirect(demo.path);
+    }
+
+    if (email.includes("@") && password.length >= 6) {
+      redirect("/dashboard/student");
+    }
+
+    return { error: "Enter any valid email and a password (6+ chars) to explore the demo." };
   }
 
   const supabase = await createClient();
@@ -53,7 +48,13 @@ export async function signInAction(
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    return { error: formatAuthError(error.message) };
+    if (error.message.toLowerCase().includes("email not confirmed")) {
+      return {
+        error:
+          "Please confirm your email first. Check your inbox, or disable email confirmation in Supabase for local testing.",
+      };
+    }
+    return { error: error.message };
   }
 
   const {
@@ -61,10 +62,8 @@ export async function signInAction(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "Sign-in succeeded but no session was created. Try again." };
+    redirect("/profile");
   }
-
-  await ensureUserProfile(supabase, user);
 
   const { data: profile } = await supabase
     .from("users")
@@ -82,13 +81,6 @@ export async function signUpAction(
   _prev: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
-  if (!isSupabaseConfigured()) {
-    return {
-      error:
-        "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL (root only, no /rest/v1) and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.",
-    };
-  }
-
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
@@ -99,27 +91,30 @@ export async function signUpAction(
     return { error: "Name, email, and password are required." };
   }
 
-  if (role === "recruiter" && !companyName) {
-    return { error: "Company name is required for recruiter accounts." };
+  if (!isSupabaseConfigured()) {
+    const path =
+      role === "recruiter"
+        ? "/dashboard/recruiter"
+        : role === "admin"
+          ? "/dashboard/admin"
+          : "/dashboard/student";
+    redirect(path);
   }
 
-  try {
-    requireSupabaseConfig();
-  } catch (err) {
-    return { error: configErrorMessage(err) };
+  if (role === "recruiter" && !companyName) {
+    return { error: "Company name is required for recruiter accounts." };
   }
 
   const supabase = await createClient();
   if (!supabase) return { error: "Could not connect to Supabase." };
 
   const siteUrl = getSiteUrl();
-  const redirectTo = `${siteUrl}/auth/callback`;
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: redirectTo,
+      emailRedirectTo: `${siteUrl}/auth/callback`,
       data: {
         full_name: fullName,
         role,
@@ -128,9 +123,7 @@ export async function signUpAction(
     },
   });
 
-  if (error) {
-    return { error: formatAuthError(error.message) };
-  }
+  if (error) return { error: error.message };
 
   if (data.session) {
     revalidatePath("/", "layout");
@@ -139,7 +132,7 @@ export async function signUpAction(
 
   return {
     success:
-      "Account created. Check your email to confirm, or sign in if email confirmation is disabled in Supabase.",
+      "Account created. Check your email to confirm, or sign in if confirmation is disabled in Supabase.",
   };
 }
 
